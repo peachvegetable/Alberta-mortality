@@ -39,6 +39,8 @@ poisson_model <-
     total_deaths ~ cause,
     data = alberta_cod,
     family = poisson(link = "log"),
+    prior = normal(location = 0, scale = 2.5, autoscale = TRUE),
+    prior_intercept = normal(location = 0, scale = 2.5, autoscale = TRUE),
     seed = 777
   )
 
@@ -48,6 +50,8 @@ neg_binomial_model <-
     total_deaths ~ cause,
     data = alberta_cod,
     family = neg_binomial_2(link = "log"),
+    prior = normal(location = 0, scale = 2.5, autoscale = TRUE),
+    prior_intercept = normal(location = 0, scale = 2.5, autoscale = TRUE),
     seed = 777
   )
 
