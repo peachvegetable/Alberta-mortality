@@ -18,6 +18,7 @@ bibliography: references.bib
 #| warning: false
 
 # load packages
+library(rstanarm)
 library(tidyverse)
 library(ggplot2)
 library(janitor)
@@ -27,18 +28,58 @@ library(knitr)
 library(modelsummary)
 library(boot)
 library(broom.mixed)
-library(bayesplot)
 library(loo)
 ```
 
 
-# Introduction
+# Introduction {#sec-intro}
+
+The COVID-19 pandemic has profoundly impacted global health, becoming a prominent cause of mortality with over 19,700 Canadians dying to the virus in 2022, marking the highest annual death toll since the pandemic's onset [@citeICI]. This stark statistic places COVID-19 among the leading causes of death in Canada since 2020. Beyond the pandemic, however, numerous other factors contribute to mortality rates, prompting an investigation into the primary causes of death preceding the emergence of COVID-19. This paper focuses on Alberta, a Canadian province that has maintained detailed records of mortality causes since 2001, offering a comprehensive dataset of the top 30 causes of death annually from 2001 to 2022.
+
+This research endeavors to analyze the top five causes of death over the past 22 years in Alberta, quantifying their relative contributions to the overall mortality rate. To this end, we employ two statistical models: the Poisson distribution model and the Negative binomial distribution model. The choice of dual models allows for a nuanced analysis, accommodating the data's variability and overdispersion, with the ultimate goal of identifying the model that best combines accuracy and precision in reflecting the underlying trends.
+
+Data for this study were sourced from the Alberta Government's open data portal, focusing on explaining the relationship between individual causes of death and the total mortality rate. This analysis seeks to determine the estimand, a statistical term denoting the quantity of interest that our models aim to estimate.
+
+The structure of this paper is designed to guide the reader through our research journey, starting with Section @sec-intro, which introduces the study's context, objectives, and preliminary observations. Section @sec-data presents visualizations of the changing landscape of mortality causes from 2001 to 2022, accompanied by a detailed description of the dataset. Section @sec-model delves into the methodology, clarifying the statistical models employed in our analysis. The findings and their statistical examination are detailed in @sec-results, while @sec-discussion discusses these results, reflecting on the study's limitations and proposing avenues for future research.
 
 
 
 # Data {#sec-data}
 
-Our data is from Alberta Government opendata, the dataset includes a ranking of the 30 most common causes of death each year in Alberta starts from 2000 to 2022, by ranking and total number of deaths [@citeAlberta]. 
+Data for this study were prepared and analyzed using R [@citeR], grasping several packages including Tidyverse [@citeTidyverse] for data manipulation, ggplot2 [@citeGgplot2] for visualization, Janitor [@citeJanitor] for data cleaning, Readr [@citeReadr] for data import, Dplyr [@citeDplyr] for data manipulation, Knitr [@citeKnitr] for dynamic reporting, Modelsummary [@citeModelsummary] for summarizing model outputs, and Rstanarm [@citeRstanarm] for Bayesian modeling.
+
+Our analysis focuses on the Alberta Government's open data, encompassing annual records of the top 30 causes of death from 2001 to 2022 [@citeAlberta]. This comprehensive dataset sheds light on mortality trends in Alberta, offering insights into the dominant health challenges before the onset of the COVID-19 pandemic. Such an extensive temporal range is crucial for identifying long-term trends and shifts in public health priorities.
+
+The dataset's primary variables include 'calendar_year' (renamed to 'Yaer'), capturing the range from 2001 to 2022; 'cause' (renamed to 'Cause'), listing the top 30 distinct causes of death annually; and 'total_deaths' (renamed to 'Deaths'), representing the yearly mortality count per cause. Initial data cleaning involved condensing the lengthy cause-of-death labels to ensure clarity in visualization. Furthermore, our analysis strategically omits causes not consistently present over the 22-year span, such as COVID-19, to maintain a focus on long-term trends and ensure analytical consistency.
+
+```{r}
+#| message: false
+#| echo: false
+#| warning: false
+#| label: tbl-top10causes2022
+#| tbl-cap: Top 10 causes of deaths in 2022, Alberta
+
+alberta_cod <- read.csv("../data/analysis_data/analysis_data.csv")
+
+alberta_cod |>
+  filter(
+    calendar_year == 2022,
+    ranking <= 10
+  ) |>
+  mutate(total_deaths = format(total_deaths, big.mark = ",")) |>
+  kable(
+    col.names = c("Year", "Cause", "Ranking", "Deaths", "Years"),
+    align = c("l", "r", "r", "r", "r"),
+    digits = 0, booktabs = TRUE, linesep = ""
+  )
+
+```
+
+@tbl-top10causes2022 presents data from Alberta for the year 2022, focusing on the top 10 causes of death. Each row in the table lists a specific cause of death, its rank in terms of mortality for that year, the number of deaths attributed to that cause, and the number of years that particular cause has appeared in the top 10 list out of the 22-year period studied.
+
+For instance, the top cause of death for 2022 is listed as "Organic dementia," which caused 2,377 deaths and has been among the top 10 causes for all 22 years analyzed. The fifth cause is "COVID-19, virus identified" with 1,547 deaths, but it has only been in the top 10 causes for 3 years, corresponding to the recent years of the pandemic.
+
+We can use this table for quickly identifying the most significant health concerns in Alberta in 2022 and assessing their persistence over time.
 
 ```{r}
 #| message: false
@@ -74,11 +115,14 @@ alberta_cod |>
   scale_color_brewer(palette = "Set1") +
   labs(x = "Year", y = "Annual number of deaths in Alberta") +
   facet_wrap(vars(cause), dir = "v", ncol = 1) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.text.y = element_text(size = 6)
+        )
 ```
 
+@fig-top5causes shows a multi-line graph depicting the annual number of deaths in Alberta for various causes from 2001 to 2022. Acute Myocardial Infarction (Heart Attack): The line appears relatively flat, which indicates that the number of deaths from heart attacks has remained consistent over the 22-year period. There is no significant upward or downward trend, suggesting stable incidence or improvements in treatment may be offsetting the risk factors in the population. All Other Forms of Chronic Diseases: This category shows a slight downward trend, indicating a small decrease in the number of deaths over time. This could be due to better management of chronic diseases or changes in diagnostic criteria and classification. Malignant Neoplasms of Trachea, Bronchus, and Lung (Lung Cancer): The line is fairly stable with a slight increase, suggesting a small rise in mortality from lung cancer over the years. This could reflect population growth, aging, or lifestyle factors influencing disease rates. Organic Dementia: There is a noticeable upward trend in deaths due to organic dementia. This is likely reflective of an aging population and increased diagnosis rates, as well as potentially increased prevalence of the disease. Other Chronic Obstructive Pulmonary Diseases (COPD): The trend for COPD is relatively stable with a very slight increase, indicating mortality rates from COPD have remained somewhat constant, potentially reflecting better treatments balancing out any increases in prevalence. When comparing the slopes of the lines, organic dementia shows the most significant increase, potentially indicating it is becoming a more prevalent cause of death. Acute myocardial infarction and COPD display relative stability compared to other causes, suggesting that the impact of these conditions on mortality rates has not changed markedly. The slight decline in 'All Other Forms of Chronic Diseases' could reflect effective public health interventions or improvements in healthcare delivery. 
 
-# Model
+# Model {#sec-model}
 
 
 ## Model set-up
@@ -104,7 +148,7 @@ y_i|\lambda_i, \theta &\sim \mbox{NegativeBinomial}(\mu_i, \theta) \\
 \theta & \sim \mbox{SomePrior}(.)
 \end{align*}
 
-We run the model in R [@citeR] using the `rstanarm` package of [@citeRstanarm]. We use the default priors from `rstanarm`.
+We run the model in R [@citeR] using the rstanarm package of [@citeRstanarm].
 
 We calculate the total number of deaths by the formula
 
@@ -186,13 +230,13 @@ modelplot(neg_binomial_model, conf_level = 0.9) +
 
 
 
-# Results
+# Results {#sec-results}
 
 
 
 
 
-# Discussion
+# Discussion {#sec-discussion}
 
 ## First discussion point {#sec-first-point}
 
