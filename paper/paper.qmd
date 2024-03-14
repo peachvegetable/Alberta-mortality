@@ -144,8 +144,7 @@ Define $y_i$ as the total deaths for the i-th observation. $\theta$ is the addit
 y_i|\lambda_i, \theta &\sim \mbox{NegativeBinomial}(\mu_i, \theta) \\
 \log(\mu_i) & = \beta_0 + \beta_1 \times \mbox{cause}_i\\
 \beta_0 & \sim \mbox{Normal}(0, 2.5)\\
-\beta_1 & \sim \mbox{Normal}(0, 2.5) \\
-\theta & \sim \mbox{SomePrior}(.)
+\beta_1 & \sim \mbox{Normal}(0, 2.5) 
 \end{align*}
 
 We run the model in R [@citeR] using the rstanarm package of [@citeRstanarm].
@@ -159,6 +158,34 @@ We calculate the total number of deaths by the formula
 
 Where $X_1$, $X_2$, $X_3$, $X_4$, and $X_5$ represent $X_{\text{Acute myocardial infarction}}$, $X_{\text{All other forms of chronic}}$, $X_{\text{Malignant neoplasms}}$, $X_{\text{Organic dementia}}$, and $X_{\text{Other chronic}}$ respectively.
 
+## Model justification
+
+The choice of the Poisson and Negative Binomial models stems from their suitability for count data. The Poisson model is a natural starting point for modeling count data, assuming that each event occurs independently and the mean rate of occurrence is constant.
+
+However, the Poisson model's restrictive assumption that the mean equals the variance often does not hold in real-world data, prompting the use of the Negative Binomial model. The Negative Binomial model relaxes the equal mean-variance assumption by introducing a dispersion parameter, making it well-suited for modeling overdispersed count data that is common in mortality records.
+
+```{r}
+#| message: false
+#| echo: false
+#| warning: false
+#| label: tbl-meanvariance
+#| tbl-cap: Showing the mean and variance of total deaths in each year from 2001 to 2022, in Alberta
+
+alberta_cod <- read.csv("../data/analysis_data/analysis_data.csv")
+
+total_deaths_stats <- alberta_cod %>%
+  summarise(
+    Mean_Deaths = mean(total_deaths),
+    Variance_Deaths = var(total_deaths)
+  )
+
+# Use kable to create a table
+kable_table <- kable(total_deaths_stats, format = "latex", digits = c(0, 3, 3),
+                     col.names = c("Estimate", "Variance"), 
+                     caption = "Mean and Variance of Total Number of Deaths Over 22 Years")
+
+kable_table
+```
 
 
 ## Model summary
