@@ -151,10 +151,9 @@ We run the model in R [@citeR] using the rstanarm package of [@citeRstanarm].
 
 We calculate the total number of deaths by the formula:
 
-\begin{equation}
+$$
 \text{total deaths} = e^{\beta_0 + \sum_{i = 1}^{5} \beta_i X_i}
-\label{eq:total_deaths_formula}
-\end{equation}
+$$ {#eq-totaldeathsformula}
 
 Where $X_1$, $X_2$, $X_3$, $X_4$, and $X_5$ represent $X_{\text{Acute myocardial infarction}}$, $X_{\text{All other forms of chronic}}$, $X_{\text{Malignant neoplasms}}$, $X_{\text{Organic dementia}}$, and $X_{\text{Other chronic}}$ respectively.
 
@@ -220,8 +219,8 @@ pp_check(neg_binomial_model) +
 # Construct the data frame for the table with proper model names
 loo_df <- data.frame(
   Model = c("Negative binomial model", "Poisson model"),
-  `ELPD diff` = c(0, -5091.179),  
-  `SE diff` = c(0, 1201.615)      
+  `ELPD diff` = c(0, -5091.2),  
+  `SE diff` = c(0, 1201.6)      
 )
 
 # Now, create the kable table with custom formatting
@@ -229,8 +228,8 @@ kable_table <- kable(loo_df,
                      format = "latex", 
                      booktabs = TRUE, 
                      row.names = FALSE, # Do not include row names
-                     col.names = c("Model", "ELPD diff", "SE diff"),
-                     caption = "LOO Comparison between Poisson and Negative Binomial Models")
+                     col.names = c("Model", "ELPD diff", "SE diff")
+                     )
 
 # Print the table
 kable_table
@@ -238,7 +237,7 @@ kable_table
 
 @tbl-elpdtable shows a model comparison using the expected log pointwise predictive density (ELPD) for two models: a Poisson model and a Negative binomial model. Negative binomial model has an ELPD difference of 0.0, which serves as the baseline because it's the model with the higher (or equal) ELPD. Poisson_model shows an ELPD difference of -5091.2 compared to the Negative binomial model, with a standard error of the difference of 1201.6. The large negative ELPD difference suggests that the Negative binomial model has a much higher ELPD than the Poisson model, which means it is better at predicting new data according to this metric. The standard error of 1201.6 indicates the uncertainty around this ELPD difference estimate. A high standard error relative to the ELPD difference can indicate less confidence in the model comparison, but in this case, the magnitude of the difference (-5091.2) is much larger than the standard error, suggesting the result is quite robust. In summary, the table suggests that the Negative binomial model is significantly better at predicting the observed data than the Poisson model in this particular analysis.
 
-Therefore, the visual evidence @fig-ppcheckpoissonvsbinomial and the observed overdispersion beyond what the Poisson model can adequately handle @tbl-meanvariance, and the ELPD @elpdtable indicate that the Negative binomial model may be more appropriate for this dataset.
+Therefore, the visual evidence @fig-ppcheckpoissonvsbinomial and the observed overdispersion beyond what the Poisson model can adequately handle @tbl-meanvariance, and the ELPD @tbl-elpdtable indicate that the Negative binomial model may be more appropriate for this dataset.
 
 ## Model summary
 
@@ -260,7 +259,7 @@ modelsummary(
 )
 ```
 
-@tbl-modelsummary displays a model summary of Poisson and Negative binomial models, used to model the cause of deaths in Alberta from 2000 to 2022. 
+@tbl-modelsummary displays a model summary of Poisson and Negative binomial models, used to model the cause of deaths in Alberta from 2000 to 2022. Since we've decided that negative binomial model is a better model to use in the model justification section, we are only to describe the coefficients of the negative binomial model. "Acute myocardial infarction" used as the intercept, estimated at 7.037, represents the expected log count of the baseline category of deaths when all other factors are held constant. The coefficient for "All other forms of chronic diseases" (0.448) suggests that these conditions are associated with an increase in the log count of deaths. This implies that, when occurrences of such chronic diseases are present, there is a higher incidence of deaths. For "Malignant neoplasms of the trachea" the coefficient of 0.226 indicates a positive association with the log count of deaths, though its magnitude is smaller than that of other chronic diseases. It still represents a notable increase in the mortality count due to these types of cancer. "Organic dementia" has a coefficient of 0.048, signifying a slight increase in the log count of deaths when organic dementia is the cause, which highlights its impact on mortality, albeit less pronounced than the other conditions. Conversely, "Other chronic obstructive pulmonary diseases" has a negative coefficient (-0.202), indicating that these conditions are associated with a lower log count of deaths compared to the baseline. The coefficients are accompanied by standard errors (in parentheses), which are reasonably small, indicating that the estimates are made with a degree of precision. These coefficients and their standard errors inform us about the relationship between each cause of death and the overall mortality rate, with the negative binomial model accounting for the overdispersion.
 
 ```{r}
 #| message: false
@@ -278,45 +277,47 @@ modelplot(neg_binomial_model, conf_level = 0.9) +
   labs(x = "90 per cent credibility interval")
 ```
 
-
+@fig-confidenceinterval displays the 90% credibility intervals for the coefficients estimated from a Poisson model and a Negative binomial model. Each dot represents the point estimate of the coefficient for a given variable, and the horizontal lines represent the intervals within which we are 90% confident that the true value of the coefficient lies. For both the Poisson and Negative binomial models, we can see: the intercept has the highest point estimate, with a very narrow interval, indicating a high degree of certainty about its value. The coefficients for "All other forms of chronic diseases", "Malignant neoplasms of trachea", and "Organic dementia" are all positive and have intervals that do not cross zero, suggesting these are statistically significant factors that increase the log count of deaths. The coefficient for "Other chronic obstructive pulmonary diseases" is negative and its interval also does not cross zero, indicating a statistically significant decrease in the log count of deaths. The intervals are symmetrical and relatively narrow, which shows a high degree of precision in the estimates.
 
 # Results {#sec-results}
 
+The analysis of the causes of death and their impact on the total mortality reveals a clear hierarchy of influences. Among the top causes, "All other forms of chronic diseases" exerts the most substantial increase in mortality rates, with a coefficient of 0.448, suggesting a significant and persistent impact on public health over the studied period. This cause of death represents the most considerable burden on mortality rates in Alberta, distinctly standing out when compared to other leading causes. In contrast, conditions grouped under "Other chronic obstructive pulmonary diseases" are associated with a reduced impact on mortality, as evidenced by the negative coefficient of -0.202. This indicates that, while still a top cause of death, its relative effect on increasing the total number of deaths is lesser than that of the chronic diseases category. As we interpret these coefficients, it is critical to note that they measure the log change in the death count, which reflects a multiplicative change in the total deaths for a one-unit increase in the cause-specific predictor. 
 
+@tbl-meanvariance provides a concise summary of these overall statistics: the mean number of deaths across all years was found to be 509.2, with a considerable variance of 201,414.1, underscoring the fluctuations in annual death tolls. The marked difference between the mean and variance suggests substantial overdispersion, a pivotal factor in our model selection. These summary statistics are the bedrock upon which our modeling efforts were built, justifying the choice of the Negative Binomial model over the Poisson model for our dataset.
 
+Advancing to the model results, we found distinct trends among the top causes of death. @fig-top5causes illustrates the annual death counts for the five leading causes over the 22-year period. Notably, organic dementia shows a pronounced increasing trajectory, indicating a growing impact on mortality over time. In contrast, deaths from acute myocardial infarction and other chronic obstructive pulmonary diseases exhibit relative stability.
+
+Collectively, these results paint a detailed statistical landscape of mortality in Alberta, with the Negative Binomial model providing a robust framework for understanding the dynamics of death causes over the two-decade span of our study.
 
 
 # Discussion {#sec-discussion}
 
-## First discussion point {#sec-first-point}
+## Overview of Findings
 
-If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this. 
+Our study rigorously quantified the influence of various causes on mortality in Alberta, leveraging Poisson and Negative Binomial models. The statistically significant coefficient of 0.448 for "All other forms of chronic diseases" in the Negative Binomial model illuminates the pronounced effect these diseases have on elevating mortality rates, surpassing other causes in their impact.
 
-## Second discussion point
+## Insights into Chronic Diseases
 
-## Third discussion point
+The upward trend in deaths attributed to organic dementia, indicated by a coefficient of 0.048, statistically confirms the increasing burden of dementia. This trend is particularly concerning given the aging demographic and suggests a growing public health challenge that demands focused research and intervention strategies.
 
-## Weaknesses and next steps
+## Pulmonary Diseases
 
-Weaknesses and next steps should also be included.
+The analysis presented a nuanced view of pulmonary diseases, with COPD showing a negative coefficient of -0.202. This stability, while indicative of effective management strategies, also highlights the continuous presence of these diseases as a significant cause of mortality. The data suggests that while progress has been made, pulmonary diseases remain a critical area for public health focus.
 
-\newpage
+## Choice of model
 
-\appendix
+The posterior predictive checks displayed in @fig-ppcheckpoissonvsbinomial provide a visual comparison between the Poisson and Negative Binomial models' fits to the observed data. The Negative Binomial model demonstrates a closer alignment with the actual data, as indicated by the tighter clustering of the 'y_rep' lines around the observed values.
 
-# Appendix {-}
+A numerical comparison between the models is presented in @tbl-elpdtable, where the Negative Binomial model distinctly outperforms the Poisson model, with an ELPD difference indicating better predictive accuracy.
 
+## Limitations and Considerations
+The exclusion of transient causes like COVID-19 due to data limitations underscores a methodological constraint that could skew the understanding of recent mortality trends. Moreover, the reliance on the Negative Binomial model, while addressing overdispersion, introduces assumptions that may not fully capture the complexity of mortality data, particularly in the presence of significant variance (201,414.1) observed across the dataset.
 
-# Additional data details
+## Future Directions
 
-# Model details {#sec-model-details}
+The findings advocate for an expanded statistical framework in future research, incorporating a broader array of causes, including pandemic-related mortality, and potentially employing more sophisticated models to better handle data complexities. Further, integrating demographic and socio-economic variables could offer a more comprehensive statistical analysis, uncovering deeper insights into the multifaceted nature of mortality determinants.
 
-## Posterior predictive check
-
-
-## Diagnostics
-
-
+In summary, our detailed statistical analysis has explained the dominant role of chronic diseases in shaping mortality trends, with dementia emerging as a growing concern. The stable impact of pulmonary diseases, while reflecting some measure of control, underscores the need for sustained public health efforts. Moving forward, embracing more complex statistical models and broader datasets will be pivotal in advancing our understanding of mortality dynamics and informing public health strategies.
 
 
 \newpage
