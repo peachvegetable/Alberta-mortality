@@ -24,6 +24,7 @@ cleaned_data <- read_csv("data/raw_data/raw_data.csv",
   mutate(cause = str_trunc(cause, 30)
          )
 
+cleaned_data <- cleaned_data[!is.na(alberta_data$calendar_year), ]
 
 #### Save data ####
 write_csv(cleaned_data, "data/analysis_data/analysis_data.csv")

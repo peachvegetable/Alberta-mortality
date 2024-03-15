@@ -1,12 +1,11 @@
 ---
-title: "Alberta Mortality 2000 to 2022"
-subtitle: "My subtitle if needed"
+title: "Chronic Diseases as Leading Mortality Drivers: A 22-Year Statistical Analysis in Alberta"
 author: 
   - Yihang Cai
 thanks: "Code and data are available at: https://github.com/peachvegetable/Alberta-mortality"
 date: today
 date-format: long
-abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
+abstract: "In this statistical analysis, we investigated mortality data from Alberta over 22 years, applying Poisson and Negative Binomial models to identify significant mortality causes. The findings indicate that chronic diseases significantly elevate mortality rates, with a notable effect size in the Negative Binomial model. This insight highlights the substantial impact of chronic conditions on public health, suggesting a need for focused interventions. Our study contributes to understanding mortality trends, emphasizing the importance of addressing chronic diseases in healthcare planning."
 format: pdf
 number-sections: true
 bibliography: references.bib
