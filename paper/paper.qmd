@@ -149,10 +149,10 @@ y_i|\lambda_i, \theta &\sim \mbox{NegativeBinomial}(\mu_i, \theta) \\
 
 We run the model in R [@citeR] using the rstanarm package of [@citeRstanarm].
 
-We calculate the total number of deaths by the formula
+We calculate the total number of deaths by the formula:
 
 \begin{equation}
-\text{total deaths} = e^{\beta_0 + \sum_{i = 0}^{5} \beta_i X_i}
+\text{total deaths} = e^{\beta_0 + \sum_{i = 1}^{5} \beta_i X_i}
 \label{eq:total_deaths_formula}
 \end{equation}
 
@@ -173,20 +173,72 @@ However, the Poisson model's restrictive assumption that the mean equals the var
 
 alberta_cod <- read.csv("../data/analysis_data/analysis_data.csv")
 
-total_deaths_stats <- alberta_cod %>%
+total_deaths_stats <- alberta_cod|>
   summarise(
-    Mean_Deaths = mean(total_deaths),
-    Variance_Deaths = var(total_deaths)
+    Mean_Deaths = mean(total_deaths, na.rm = TRUE),
+    Variance_Deaths = var(total_deaths, na.rm = TRUE)
   )
 
 # Use kable to create a table
-kable_table <- kable(total_deaths_stats, format = "latex", digits = c(0, 3, 3),
+kable_table <- kable(total_deaths_stats, format = "latex", digits = c(1, 1),
                      col.names = c("Estimate", "Variance"), 
                      caption = "Mean and Variance of Total Number of Deaths Over 22 Years")
 
 kable_table
 ```
 
+@tbl-meanvariance illustrates a significant disparity between the mean(509.2) and the variance(201414.1) of total deaths over a span of 22 years, indicating the presence of overdispersion. Such a finding suggests that the Negative Binomial model may be more appropriate than the Poisson model for this dataset. The Poisson model operates under the assumption that the mean and variance are equal, an assumption not supported by our data. In contrast, the Negative Binomial model can accommodate the observed overdispersion by allowing for a variance that is greater than the mean, thus providing a potentially better fit for the data. We also compare how the two models fit the real dataset using ppcheck in the bayesplot package [@citeBayesplot].
+
+```{r}
+#| message: false
+#| echo: false
+#| warning: false
+#| label: fig-ppcheckpoissonvsbinomial
+#| layout-ncol: 2
+#| fig-cap: "Comparing Poisson and negative binomial models"
+#| fig-subcap: ["Poisson model", "Negative binomial model"]
+
+poisson_model <- readRDS("../models/poisson_model.rds")
+neg_binomial_model <- readRDS("../models/neg_binomial_model.rds")
+
+pp_check(poisson_model) +
+  theme(legend.position = "bottom")
+
+pp_check(neg_binomial_model) +
+  theme(legend.position = "bottom")
+```
+
+@fig-ppcheckpoissonvsbinomial displayes a graphical comparison of posterior predictive checks for Poisson model and Negative binomial model. @fig-ppcheckpoissonvsbinomial-1 shows the fit for the Poisson model. The simulated "y_rep" lines show the spread and central tendency of the predictions that the Poisson model makes for the observed data. The replicated data lines seem to spread out and fluctuate more around the observed data, which suggests a lesser fit, particularly if the spread is wider and doesn't track the shape of the observed data closely. @fig-ppcheckpoissonvsbinomial-2 shows the fig for the Negative binomial model. The replicated data lines appear to follow the observed data line more closely, suggesting that the Negative binomial model captures the central tendency and variability of the observed data better than the Poisson model.
+
+```{r}
+#| message: false
+#| echo: false
+#| warning: false
+#| label: tbl-elpdtable
+#| tbl-cap: "LOO Comparison between Poisson and Negative Binomial Models"
+
+# Construct the data frame for the table with proper model names
+loo_df <- data.frame(
+  Model = c("Negative binomial model", "Poisson model"),
+  `ELPD diff` = c(0, -5091.179),  
+  `SE diff` = c(0, 1201.615)      
+)
+
+# Now, create the kable table with custom formatting
+kable_table <- kable(loo_df, 
+                     format = "latex", 
+                     booktabs = TRUE, 
+                     row.names = FALSE, # Do not include row names
+                     col.names = c("Model", "ELPD diff", "SE diff"),
+                     caption = "LOO Comparison between Poisson and Negative Binomial Models")
+
+# Print the table
+kable_table
+```
+
+@tbl-elpdtable shows a model comparison using the expected log pointwise predictive density (ELPD) for two models: a Poisson model and a Negative binomial model. Negative binomial model has an ELPD difference of 0.0, which serves as the baseline because it's the model with the higher (or equal) ELPD. Poisson_model shows an ELPD difference of -5091.2 compared to the Negative binomial model, with a standard error of the difference of 1201.6. The large negative ELPD difference suggests that the Negative binomial model has a much higher ELPD than the Poisson model, which means it is better at predicting new data according to this metric. The standard error of 1201.6 indicates the uncertainty around this ELPD difference estimate. A high standard error relative to the ELPD difference can indicate less confidence in the model comparison, but in this case, the magnitude of the difference (-5091.2) is much larger than the standard error, suggesting the result is quite robust. In summary, the table suggests that the Negative binomial model is significantly better at predicting the observed data than the Poisson model in this particular analysis.
+
+Therefore, the visual evidence @fig-ppcheckpoissonvsbinomial and the observed overdispersion beyond what the Poisson model can adequately handle @tbl-meanvariance, and the ELPD @elpdtable indicate that the Negative binomial model may be more appropriate for this dataset.
 
 ## Model summary
 
@@ -208,36 +260,7 @@ modelsummary(
 )
 ```
 
-
-```{r}
-#| message: false
-#| echo: false
-#| warning: false
-#| label: fig-ppcheckpoissonvsbinomial
-#| layout-ncol: 2
-#| fig-cap: "Comparing Poisson and negative binomial models"
-#| fig-subcap: ["Poisson model", "Negative binomial model"]
-
-pp_check(poisson_model) +
-  theme(legend.position = "bottom")
-
-pp_check(neg_binomial_model) +
-  theme(legend.position = "bottom")
-```
-
-```{r}
-#| message: false
-#| echo: false
-#| warning: false
-#| label: tbl-elpdtable
-#| tbl-cap: "ELPD table"
-
-
-poisson <- loo(poisson_model, cores = 2)
-neg_binomial <- loo(neg_binomial_model, cores = 2)
-
-loo_compare(poisson, neg_binomial)
-```
+@tbl-modelsummary displays a model summary of Poisson and Negative binomial models, used to model the cause of deaths in Alberta from 2000 to 2022. 
 
 ```{r}
 #| message: false
